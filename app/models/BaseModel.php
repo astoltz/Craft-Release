@@ -365,6 +365,11 @@ abstract class BaseModel extends \CModel
 				// Handle special case attribute types
 				switch ($config['type'])
 				{
+					case AttributeType::Bool:
+					{
+						$value = (bool) $value;
+						break;
+					}
 					case AttributeType::DateTime:
 					{
 						if ($value)
