@@ -67,6 +67,14 @@ class S3
 	private static $__secretKey = null;
 	
 	/**
+	 * AWS temporary token
+	 *
+	 * @var string
+	 * @static
+	 */
+	public static $__token = null;
+	
+	/**
 	 * SSL Client key
 	 *
 	 * @var string
@@ -184,8 +192,10 @@ class S3
 	*/
 	public function __construct($accessKey = null, $secretKey = null, $useSSL = false, $endpoint = 's3.amazonaws.com')
 	{
-		if ($accessKey !== null && $secretKey !== null)
+		if (!empty($accessKey) && !empty($secretKey))
 			self::setAuth($accessKey, $secretKey);
+		else
+			self::setAuthFromIam();
 		self::$useSSL = $useSSL;
 		self::$endpoint = $endpoint;
 	}
@@ -213,6 +223,36 @@ class S3
 	{
 		self::$__accessKey = $accessKey;
 		self::$__secretKey = $secretKey;
+	}
+
+	/**
+	 * Set AWS access key and secret key from an IAM role.
+	 *
+	 * @throws Exception
+	 */
+	public static function setAuthFromIam()
+	{
+		$rest = new S3Request('GET', '', '/latest/meta-data/iam/info', '169.254.169.254');
+		$rest = $rest->getResponse();
+		if ($rest->error === false)
+		{
+			$response = json_decode($rest->body);
+			$iamRole = $response->InstanceProfileArn;
+			if (false !== ($pos = strrpos($iamRole, '/')))
+			{
+				$iamRole = substr($iamRole, $pos + 1);
+			}
+
+			$rest = new S3Request('GET', '', '/latest/meta-data/iam/security-credentials/' . $iamRole, '169.254.169.254');
+			$rest = $rest->getResponse();
+			if ($rest->error === false)
+			{
+				$response = json_decode($rest->body);
+				self::$__accessKey = $response->AccessKeyId;
+				self::$__secretKey = $response->SecretAccessKey;
+				self::$__token = $response->Token;
+			}
+		}
 	}
 
 
@@ -2102,6 +2142,11 @@ final class S3Request
 			curl_setopt($curl, CURLOPT_PROXYTYPE, S3::$proxy['type']);
 			if (isset(S3::$proxy['user'], S3::$proxy['pass']) && S3::$proxy['user'] != null && S3::$proxy['pass'] != null)
 				curl_setopt($curl, CURLOPT_PROXYUSERPWD, sprintf('%s:%s', S3::$proxy['user'], S3::$proxy['pass']));
+		}
+
+		if (!empty(S3::$__token))
+		{
+			$this->amzHeaders['x-amz-security-token'] = S3::$__token;
 		}
 
 		// Headers

@@ -8,8 +8,7 @@
 	name: 'keyId',
 	value: settings.keyId,
 	errors: settings.getErrors('keyId'),
-	class: 's3-key-id',
-	required: true
+	class: 's3-key-id'
 }) }}
 
 {{ forms.textField({
@@ -18,8 +17,7 @@
 	name: 'secret',
 	value: settings.secret,
 	errors: settings.getErrors('secret'),
-	class: 's3-secret-key',
-	required: true
+	class: 's3-secret-key'
 }) }}
 
 {% set bucketInput %}

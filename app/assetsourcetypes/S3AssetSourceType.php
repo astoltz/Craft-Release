@@ -392,8 +392,8 @@ class S3AssetSourceType extends BaseAssetSourceType
 	protected function defineSettings()
 	{
 		return array(
-			'keyId'      => array(AttributeType::String, 'required' => true),
-			'secret'     => array(AttributeType::String, 'required' => true),
+			'keyId'      => array(AttributeType::String),
+			'secret'     => array(AttributeType::String),
 			'bucket'     => array(AttributeType::String, 'required' => true),
 			'location'   => array(AttributeType::String, 'required' => true),
 			'urlPrefix'  => array(AttributeType::String, 'required' => true),
@@ -743,7 +743,14 @@ class S3AssetSourceType extends BaseAssetSourceType
 			$this->_s3->setExceptions(true);
 		}
 
-		\S3::setAuth($settings->keyId, $settings->secret);
+		if (!empty($settings->keyId) && !empty($settings->secret))
+		{
+			\S3::setAuth($settings->keyId, $settings->secret);
+		}
+		else
+		{
+			\S3::setAuthFromIam();
+		}
 		$this->_s3->setEndpoint(static::getEndpointByLocation($settings->location));
 	}
 
